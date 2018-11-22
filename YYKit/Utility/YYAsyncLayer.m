@@ -107,9 +107,8 @@ static dispatch_queue_t YYAsyncLayerGetReleaseQueue() {
 #pragma mark - Private
 
 - (void)_displayAsync:(BOOL)async {
-    __strong id <YYAsyncLayerDelegate> delegate =  self.delegate;
+    __strong id<YYAsyncLayerDelegate> delegate = (id)self.delegate;
     YYAsyncLayerDisplayTask *task = [delegate newAsyncDisplayTask];
-    
     if (!task.display) {
         if (task.willDisplay) task.willDisplay(self);
         self.contents = nil;
@@ -127,6 +126,7 @@ static dispatch_queue_t YYAsyncLayerGetReleaseQueue() {
         CGSize size = self.bounds.size;
         BOOL opaque = self.opaque;
         CGFloat scale = self.contentsScale;
+        CGColorRef backgroundColor = (opaque && self.backgroundColor) ? CGColorRetain(self.backgroundColor) : NULL;
         if (size.width < 1 || size.height < 1) {
             CGImageRef image = (__bridge_retained CGImageRef)(self.contents);
             self.contents = nil;
@@ -136,34 +136,32 @@ static dispatch_queue_t YYAsyncLayerGetReleaseQueue() {
                 });
             }
             if (task.didDisplay) task.didDisplay(self, YES);
+            CGColorRelease(backgroundColor);
             return;
         }
         
         dispatch_async(YYAsyncLayerGetDisplayQueue(), ^{
-            if (isCancelled()) return;
-            
-            /**
-             系统会维护一个CGContextRef的栈，UIGraphicsGetCurrentContext()会取出栈顶的context，所以在setFrame调用UIGraphicsGetCurrentContext(), 但获得的上下文总是nil。只能在drawRect里调用UIGraphicsGetCurrentContext()，
-             因为在drawRect之前，系统会往栈里面压入一个valid的CGContextRef，除非自己去维护一个CGContextRef，否则不应该在其他地方取CGContextRef。
-             那如果就像在drawRect之外获得context怎么办？那只能自己创建位图上下文了
-             */
-            
-            /**
-             UIGraphicsBeginImageContext这个方法也可以来获取图形上下文进行绘制的话就会出现你绘制出来的图片相当的模糊，其实原因很简单
-             因为 UIGraphicsBeginImageContext(size) = UIGraphicsBeginImageContextWithOptions(size,NO,1.0)
-             */
-            
-            /**
-             创建一个图片类型的上下文。调用UIGraphicsBeginImageContextWithOptions函数就可获得用来处理图片的图形上下文。利用该上下文，你就可以在其上进行绘图，并生成图片
-             
-             第一个参数表示所要创建的图片的尺寸
-             第二个参数表示这个图层是否完全透明，一般情况下最好设置为YES，这样可以让图层在渲染的时候效率更高
-             第三个参数指定生成图片的缩放因子，这个缩放因子与UIImage的scale属性所指的含义是一致的。传入0则表示让图片的缩放因子根据屏幕的分辨率而变化，所以我们得到的图片不管是在单分辨率还是视网膜屏上看起来都会很好
-             */
-            
-     
+            if (isCancelled()) {
+                CGColorRelease(backgroundColor);
+                return;
+            }
             UIGraphicsBeginImageContextWithOptions(size, opaque, scale);
             CGContextRef context = UIGraphicsGetCurrentContext();
+            if (opaque && context) {
+                CGContextSaveGState(context); {
+                    if (!backgroundColor || CGColorGetAlpha(backgroundColor) < 1) {
+                        CGContextSetFillColorWithColor(context, [UIColor whiteColor].CGColor);
+                        CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
+                        CGContextFillPath(context);
+                    }
+                    if (backgroundColor) {
+                        CGContextSetFillColorWithColor(context, backgroundColor);
+                        CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
+                        CGContextFillPath(context);
+                    }
+                } CGContextRestoreGState(context);
+                CGColorRelease(backgroundColor);
+            }
             task.display(context, size, isCancelled);
             if (isCancelled()) {
                 UIGraphicsEndImageContext();
@@ -194,6 +192,23 @@ static dispatch_queue_t YYAsyncLayerGetReleaseQueue() {
         if (task.willDisplay) task.willDisplay(self);
         UIGraphicsBeginImageContextWithOptions(self.bounds.size, self.opaque, self.contentsScale);
         CGContextRef context = UIGraphicsGetCurrentContext();
+        if (self.opaque && context) {
+            CGSize size = self.bounds.size;
+            size.width *= self.contentsScale;
+            size.height *= self.contentsScale;
+            CGContextSaveGState(context); {
+                if (!self.backgroundColor || CGColorGetAlpha(self.backgroundColor) < 1) {
+                    CGContextSetFillColorWithColor(context, [UIColor whiteColor].CGColor);
+                    CGContextAddRect(context, CGRectMake(0, 0, size.width, size.height));
+                    CGContextFillPath(context);
+                }
+                if (self.backgroundColor) {
+                    CGContextSetFillColorWithColor(context, self.backgroundColor);
+                    CGContextAddRect(context, CGRectMake(0, 0, size.width, size.height));
+                    CGContextFillPath(context);
+                }
+            } CGContextRestoreGState(context);
+        }
         task.display(context, self.bounds.size, ^{return NO;});
         UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
