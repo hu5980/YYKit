@@ -107,8 +107,9 @@ static dispatch_queue_t YYAsyncLayerGetReleaseQueue() {
 #pragma mark - Private
 
 - (void)_displayAsync:(BOOL)async {
-    __strong id<YYAsyncLayerDelegate> delegate = self.delegate;
+    __strong id <YYAsyncLayerDelegate> delegate =  self.delegate;
     YYAsyncLayerDisplayTask *task = [delegate newAsyncDisplayTask];
+    
     if (!task.display) {
         if (task.willDisplay) task.willDisplay(self);
         self.contents = nil;
@@ -140,6 +141,27 @@ static dispatch_queue_t YYAsyncLayerGetReleaseQueue() {
         
         dispatch_async(YYAsyncLayerGetDisplayQueue(), ^{
             if (isCancelled()) return;
+            
+            /**
+             系统会维护一个CGContextRef的栈，UIGraphicsGetCurrentContext()会取出栈顶的context，所以在setFrame调用UIGraphicsGetCurrentContext(), 但获得的上下文总是nil。只能在drawRect里调用UIGraphicsGetCurrentContext()，
+             因为在drawRect之前，系统会往栈里面压入一个valid的CGContextRef，除非自己去维护一个CGContextRef，否则不应该在其他地方取CGContextRef。
+             那如果就像在drawRect之外获得context怎么办？那只能自己创建位图上下文了
+             */
+            
+            /**
+             UIGraphicsBeginImageContext这个方法也可以来获取图形上下文进行绘制的话就会出现你绘制出来的图片相当的模糊，其实原因很简单
+             因为 UIGraphicsBeginImageContext(size) = UIGraphicsBeginImageContextWithOptions(size,NO,1.0)
+             */
+            
+            /**
+             创建一个图片类型的上下文。调用UIGraphicsBeginImageContextWithOptions函数就可获得用来处理图片的图形上下文。利用该上下文，你就可以在其上进行绘图，并生成图片
+             
+             第一个参数表示所要创建的图片的尺寸
+             第二个参数表示这个图层是否完全透明，一般情况下最好设置为YES，这样可以让图层在渲染的时候效率更高
+             第三个参数指定生成图片的缩放因子，这个缩放因子与UIImage的scale属性所指的含义是一致的。传入0则表示让图片的缩放因子根据屏幕的分辨率而变化，所以我们得到的图片不管是在单分辨率还是视网膜屏上看起来都会很好
+             */
+            
+     
             UIGraphicsBeginImageContextWithOptions(size, opaque, scale);
             CGContextRef context = UIGraphicsGetCurrentContext();
             task.display(context, size, isCancelled);

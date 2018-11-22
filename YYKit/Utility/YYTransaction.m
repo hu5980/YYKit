@@ -38,6 +38,8 @@ static void YYTransactionSetup() {
         CFRunLoopRef runloop = CFRunLoopGetMain();
         CFRunLoopObserverRef observer;
         
+    
+        
         observer = CFRunLoopObserverCreate(CFAllocatorGetDefault(),
                                            kCFRunLoopBeforeWaiting | kCFRunLoopExit,
                                            true,      // repeat
