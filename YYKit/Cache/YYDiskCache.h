@@ -205,7 +205,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  Returns a boolean value with the block that indicates whether a given key is in cache.
  This method returns immediately and invoke the passed block in background queue 
- when the operation finished.
+ when the operation finished.c
  
  @param key   A string identifying the value. If nil, just return NO.
  @param block A block which will be invoked in background queue when finished.
@@ -304,6 +304,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)totalCount;
 
 /**
+ 获取这个cache 中缓存的objects数目
  Get the number of objects in this cache.
  This method returns immediately and invoke the passed block in background queue
  when the operation finished.
@@ -313,6 +314,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)totalCountWithBlock:(void(^)(NSInteger totalCount))block;
 
 /**
+ // 返回这个cache 中缓存的数据大小
  Returns the total cost (in bytes) of objects in this cache.
  This method may blocks the calling thread until file read finished.
  

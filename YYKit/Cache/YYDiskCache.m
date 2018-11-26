@@ -73,6 +73,7 @@ static void _YYDiskCacheSetGlobal(YYDiskCache *cache) {
     dispatch_queue_t _queue;  //队列
 }
 
+//在_autoTrimInterval 设置的时间内 刷新内存缓存的一些数据
 - (void)_trimRecursively {
     __weak typeof(self) _self = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_autoTrimInterval * NSEC_PER_SEC)), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
@@ -97,13 +98,17 @@ static void _YYDiskCacheSetGlobal(YYDiskCache *cache) {
     });
 }
 
+//根据costLimit 大小 ，清楚diskCache 中的数据 ，costLimit表示当前可以缓存的大小
 - (void)_trimToCost:(NSUInteger)costLimit {
+    // costLimit 大于 等于 INT_MAX 直接返回 无需移除
     if (costLimit >= INT_MAX) return;
     [_kv removeItemsToFitSize:(int)costLimit];
     
 }
 
+//根据countLimit 的个数 ，清楚diskCache 中的数据，countLimit 表示当前可以缓存的个数
 - (void)_trimToCount:(NSUInteger)countLimit {
+     // countLimit 大于 INT_MAX 直接返回 无需移除
     if (countLimit >= INT_MAX) return;
     [_kv removeItemsToFitCount:(int)countLimit];
 }

@@ -570,6 +570,12 @@ static NSString *const kTrashDirectoryName = @"trash";
     return sqlite3_column_int(stmt, 0);
 }
 
+
+/**
+ 获取数据库已经缓存的对象的总大小
+
+ @return 大小
+ */
 - (int)_dbGetTotalItemSize {
     NSString *sql = @"select sum(size) from manifest;";
     sqlite3_stmt *stmt = [self _dbPrepareStmt:sql];
@@ -655,12 +661,13 @@ static NSString *const kTrashDirectoryName = @"trash";
 }
 
 #pragma mark - public
-
+// YYKVStorage 初始化
 - (instancetype)init {
     @throw [NSException exceptionWithName:@"YYKVStorage init error" reason:@"Please use the designated initializer and pass the 'path' and 'type'." userInfo:nil];
     return [self initWithPath:@"" type:YYKVStorageTypeFile];
 }
 
+// YYKVStorage 初始化 path 跟 type
 - (instancetype)initWithPath:(NSString *)path type:(YYKVStorageType)type {
     if (path.length == 0 || path.length > kPathLengthMax) {
         NSLog(@"YYKVStorage init error: invalid path: [%@].", path);
@@ -840,24 +847,34 @@ static NSString *const kTrashDirectoryName = @"trash";
     return NO;
 }
 
+// 移除Items ，去适配diskCache的大小
 - (BOOL)removeItemsToFitSize:(int)maxSize {
+    // 如果maxSize == INT_MAX  无需移除
     if (maxSize == INT_MAX) return YES;
+    // 如果 maxSize <= 0 移除所有
     if (maxSize <= 0) return [self removeAllItems];
-    
+    // 获取数据库中，已经缓存的对象的总大小
     int total = [self _dbGetTotalItemSize];
+    // total < 0 则直接返回 NO
     if (total < 0) return NO;
+    // total < maxSize 表示已经缓存的小于可以缓存的 ，此时可以不用移除
     if (total <= maxSize) return YES;
     
     NSArray *items = nil;
     BOOL suc = NO;
     do {
         int perCount = 16;
+        // 获取缓存的所有的对象
         items = [self _dbGetItemSizeInfoOrderByTimeAscWithLimit:perCount];
+        // 遍历
         for (YYKVStorageItem *item in items) {
+            //缓存的大于可以缓存的
             if (total > maxSize) {
+                // 文件名 存在 ,则磁盘缓存在文件系统中，在文件系统中删除它
                 if (item.filename) {
                     [self _fileDeleteWithName:item.filename];
                 }
+                // 在数据库系统中删除它
                 suc = [self _dbDeleteItemWithKey:item.key];
                 total -= item.size;
             } else {
@@ -870,10 +887,14 @@ static NSString *const kTrashDirectoryName = @"trash";
     return suc;
 }
 
+// 移除Items ，去适配diskCache的个数
 - (BOOL)removeItemsToFitCount:(int)maxCount {
+     // 如果maxSize == INT_MAX  无需移除
     if (maxCount == INT_MAX) return YES;
+     // 如果 maxSize <= 0 移除所有
     if (maxCount <= 0) return [self removeAllItems];
     
+    // 获取数据库中，已经缓存的对象总个数
     int total = [self _dbGetTotalItemCount];
     if (total < 0) return NO;
     if (total <= maxCount) return YES;
@@ -882,6 +903,7 @@ static NSString *const kTrashDirectoryName = @"trash";
     BOOL suc = NO;
     do {
         int perCount = 16;
+        // 获取缓存的所有的对象
         items = [self _dbGetItemSizeInfoOrderByTimeAscWithLimit:perCount];
         for (YYKVStorageItem *item in items) {
             if (total > maxCount) {
@@ -900,6 +922,7 @@ static NSString *const kTrashDirectoryName = @"trash";
     return suc;
 }
 
+// 删除所有的Items
 - (BOOL)removeAllItems {
     if (![self _dbClose]) return NO;
     [self _reset];
