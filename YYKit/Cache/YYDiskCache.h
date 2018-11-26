@@ -35,10 +35,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// @name Attribute
 ///=============================================================================
 
-/** The name of the cache. Default is nil. */
+/**  缓存名称 The name of the cache. Default is nil. */
 @property (nullable, copy) NSString *name;
 
-/** The path of the cache (read-only). */
+/** 缓存路径 The path of the cache (read-only). */
 @property (readonly) NSString *path;
 
 /**
@@ -87,24 +87,30 @@ NS_ASSUME_NONNULL_BEGIN
 ///=============================================================================
 
 /**
+ 
+ 缓存可以容纳的最大内存快 （这是个数）
  The maximum number of objects the cache should hold.
  
  @discussion The default value is NSUIntegerMax, which means no limit.
  This is not a strict limit — if the cache goes over the limit, some objects in the
  cache could be evicted later in background queue.
  */
+
 @property NSUInteger countLimit;
 
 /**
+ 在回收之前缓存可以容纳的最大内存 （这是总量）
  The maximum total cost that the cache can hold before it starts evicting objects.
  
  @discussion The default value is NSUIntegerMax, which means no limit.
  This is not a strict limit — if the cache goes over the limit, some objects in the
  cache could be evicted later in background queue.
  */
+
 @property NSUInteger costLimit;
 
 /**
+  // 缓存的最长过期时间
  The maximum expiry time of objects in cache.
  
  @discussion The default value is DBL_MAX, which means no limit.
@@ -114,6 +120,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSTimeInterval ageLimit;
 
 /**
+ // 最小应该保存的磁盘空间
  The minimum free disk space (in bytes) which the cache should kept.
  
  @discussion The default value is 0, which means no limit.
@@ -124,6 +131,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSUInteger freeDiskSpaceLimit;
 
 /**
+  // 自动检查缓存的时间
  The auto trim check time interval in seconds. Default is 60 (1 minute).
  
  @discussion The cache holds an internal timer to check whether the cache reaches
@@ -132,6 +140,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSTimeInterval autoTrimInterval;
 
 /**
+ // 错误日志设置
  Set `YES` to enable error logs for debug.
  */
 @property BOOL errorLogsEnabled;
@@ -144,6 +153,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)new UNAVAILABLE_ATTRIBUTE;
 
 /**
+ // 通过path创建磁盘缓存
  Create a new cache based on the specified path.
  
  @param path Full path of a directory in which the cache will write data.

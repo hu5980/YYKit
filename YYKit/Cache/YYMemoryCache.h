@@ -51,6 +51,7 @@ NS_ASSUME_NONNULL_BEGIN
 ///=============================================================================
 
 /**
+ // 在回收之前缓存可以容纳的最大内存快（这是个数）
  The maximum number of objects the cache should hold.
  
  @discussion The default value is NSUIntegerMax, which means no limit.
@@ -60,6 +61,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSUInteger countLimit;
 
 /**
+ // 在回收之前缓存可以容纳的最大内存 （这是总量）
  The maximum total cost that the cache can hold before it starts evicting objects.
  
  @discussion The default value is NSUIntegerMax, which means no limit.
@@ -69,6 +71,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSUInteger costLimit;
 
 /**
+ // 缓存的最长过期时间
  The maximum expiry time of objects in cache.
  
  @discussion The default value is DBL_MAX, which means no limit.
@@ -78,6 +81,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSTimeInterval ageLimit;
 
 /**
+ // 自动检查缓存的时间
  The auto trim check time interval in seconds. Default is 5.0.
  
  @discussion The cache holds an internal timer to check whether the cache reaches 
@@ -86,12 +90,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSTimeInterval autoTrimInterval;
 
 /**
+ // 是否应该移除所有的缓存对象 在接收到内存警告的时候
  If `YES`, the cache will remove all objects when the app receives a memory warning.
  The default value is `YES`.
  */
 @property BOOL shouldRemoveAllObjectsOnMemoryWarning;
 
 /**
+ // 是否应该移除所有的缓存对象 在进入后台的时候
  If `YES`, The cache will remove all objects when the app enter background.
  The default value is `YES`.
  */
