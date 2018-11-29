@@ -572,11 +572,12 @@ static NSString *const kTrashDirectoryName = @"trash";
 
 
 /**
- 获取数据库已经缓存的对象的总大小
+ 获取数据库可以缓存的对象的总大小
 
  @return 大小
  */
 - (int)_dbGetTotalItemSize {
+    // 获取manifest 表中 size 的总和
     NSString *sql = @"select sum(size) from manifest;";
     sqlite3_stmt *stmt = [self _dbPrepareStmt:sql];
     if (!stmt) return -1;
@@ -588,6 +589,11 @@ static NSString *const kTrashDirectoryName = @"trash";
     return sqlite3_column_int(stmt, 0);
 }
 
+/**
+ 获取数据库可以缓存的对象的总个数
+ 
+ @return 个数
+ */
 - (int)_dbGetTotalItemCount {
     NSString *sql = @"select count(*) from manifest;";
     sqlite3_stmt *stmt = [self _dbPrepareStmt:sql];
@@ -825,6 +831,7 @@ static NSString *const kTrashDirectoryName = @"trash";
     if (time <= 0) return YES;
     if (time == INT_MAX) return [self removeAllItems];
     
+    // 根据type 选择从数据库还是文件系统中进行删除
     switch (_type) {
         case YYKVStorageTypeSQLite: {
             if ([self _dbDeleteItemsWithTimeEarlierThan:time]) {
@@ -963,13 +970,19 @@ static NSString *const kTrashDirectoryName = @"trash";
     }
 }
 
+// 从磁盘缓存中获取YYKVStorageItem
 - (YYKVStorageItem *)getItemForKey:(NSString *)key {
     if (key.length == 0) return nil;
+    // 首先通过key 从数据库中获取YYKVStorageItem 对象
     YYKVStorageItem *item = [self _dbGetItemWithKey:key excludeInlineData:NO];
     if (item) {
+        // 更新key所对应的 对象的last_access_time 时间
         [self _dbUpdateAccessTimeWithKey:key];
+        // 判断文件名是否存在
         if (item.filename) {
+            // 文件名存在则可以认为 数据存储在文件系统中
             item.value = [self _fileReadWithName:item.filename];
+            // 如果从文件系统中得不到数据 则从数据库删除所对应的key 值
             if (!item.value) {
                 [self _dbDeleteItemWithKey:key];
                 item = nil;
@@ -985,6 +998,7 @@ static NSString *const kTrashDirectoryName = @"trash";
     return item;
 }
 
+// 从磁盘缓存中获取 Data
 - (NSData *)getItemValueForKey:(NSString *)key {
     if (key.length == 0) return nil;
     NSData *value = nil;
@@ -1020,6 +1034,7 @@ static NSString *const kTrashDirectoryName = @"trash";
     }
     return value;
 }
+
 
 - (NSArray *)getItemForKeys:(NSArray *)keys {
     if (keys.count == 0) return nil;

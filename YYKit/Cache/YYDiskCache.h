@@ -120,7 +120,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSTimeInterval ageLimit;
 
 /**
- // 最小应该保存的磁盘空间
+ // 缓存时 最小需要的磁盘空间
  The minimum free disk space (in bytes) which the cache should kept.
  
  @discussion The default value is 0, which means no limit.

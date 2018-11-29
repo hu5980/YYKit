@@ -113,7 +113,9 @@ static void _YYDiskCacheSetGlobal(YYDiskCache *cache) {
     [_kv removeItemsToFitCount:(int)countLimit];
 }
 
+// 根据时间清除硬盘缓存中的数据
 - (void)_trimToAge:(NSTimeInterval)ageLimit {
+    // 缓存已经过期，清楚所有缓存
     if (ageLimit <= 0) {
         [_kv removeAllItems];
         return;
@@ -122,19 +124,28 @@ static void _YYDiskCacheSetGlobal(YYDiskCache *cache) {
     if (timestamp <= ageLimit) return;
     long age = timestamp - ageLimit;
     if (age >= INT_MAX) return;
+    // 根据当前时间跟缓存过期时间来删除Items
     [_kv removeItemsEarlierThanTime:(int)age];
 }
 
+// 根据磁盘空闲空间来清除硬盘缓存中的数据
 - (void)_trimToFreeDiskSpace:(NSUInteger)targetFreeDiskSpace {
+    // 最小应该保留的磁盘空间为 0 则不需要执行以下代码
     if (targetFreeDiskSpace == 0) return;
+    // 获取数据库可以缓存的总大小
     int64_t totalBytes = [_kv getItemsSize];
     if (totalBytes <= 0) return;
+    // 获取硬件空闲的磁盘空间
     int64_t diskFreeBytes = _YYDiskSpaceFree();
     if (diskFreeBytes < 0) return;
     int64_t needTrimBytes = targetFreeDiskSpace - diskFreeBytes;
+    // diskCache 所需要的缓存空间  减去 硬件空闲的磁盘空间
+    // < 0 足够
     if (needTrimBytes <= 0) return;
+    // 这里是算出 diskcache 需要清除的缓存的大小
     int64_t costLimit = totalBytes - needTrimBytes;
     if (costLimit < 0) costLimit = 0;
+    // costLimit ,表示当前应该缓存的 大小
     [self _trimToCost:(int)costLimit];
 }
 
